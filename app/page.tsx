@@ -12,6 +12,7 @@ import { ExportStage } from "@/components/stages/export-stage"
 import { ProductionStage } from "@/components/stages/production-stage"
 import { SlidesInputStage } from "@/components/stages/slides-input-stage"
 import { WorkflowHeader } from "@/components/workflow-header"
+import { useBrowserHistory } from "@/lib/hooks/use-browser-history"
 import { useCarouselStore } from "@/lib/stores/carousel-store"
 import { useProjectStore } from "@/lib/stores/project-store"
 
@@ -41,6 +42,8 @@ function Main() {
 export default function Home() {
   const initialize = useProjectStore((s) => s.initialize)
   const closeCarousel = useCarouselStore((s) => s.closeCarousel)
+
+  useBrowserHistory()
 
   useEffect(() => {
     initialize()
