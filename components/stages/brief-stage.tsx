@@ -8,16 +8,16 @@ import { Textarea } from "@/components/ui/textarea"
 import { useAppStore } from "@/lib/store"
 
 export function BriefStage() {
-  const { currentProject, updateProject, setStage, brandSettings } = useAppStore()
+  const { currentCarousel, updateCarousel, setStage, brandSettings } = useAppStore()
   
-  const [goal, setGoal] = useState(currentProject?.goal || "")
-  const [coreIdea, setCoreIdea] = useState(currentProject?.coreIdea || "")
-  const [coverPrompt, setCoverPrompt] = useState(currentProject?.coverPrompt || "")
+  const [goal, setGoal] = useState(currentCarousel?.goal || "")
+  const [coreIdea, setCoreIdea] = useState(currentCarousel?.coreIdea || "")
+  const [coverPrompt, setCoverPrompt] = useState(currentCarousel?.coverPrompt || "")
   
   const canProceed = goal.trim() && coreIdea.trim() && coverPrompt.trim()
   
   const handleGenerateCover = () => {
-    updateProject({ goal, coreIdea, coverPrompt })
+    updateCarousel({ goal, coreIdea, coverPrompt })
     setStage('cover-review')
   }
   

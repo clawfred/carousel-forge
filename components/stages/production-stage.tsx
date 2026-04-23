@@ -6,7 +6,7 @@ import { Check, Loader2 } from "lucide-react"
 import { useAppStore } from "@/lib/store"
 
 export function ProductionStage() {
-  const currentProject = useAppStore((s) => s.currentProject)
+  const currentCarousel = useAppStore((s) => s.currentCarousel)
   const generation = useAppStore((s) => s.generation)
   const generateSlides = useAppStore((s) => s.generateSlides)
 
@@ -17,12 +17,12 @@ export function ProductionStage() {
     void generateSlides()
   }, [generateSlides])
 
-  const totalSlides = currentProject?.slidePrompts.length || 0
+  const totalSlides = currentCarousel?.slidePrompts.length || 0
   const generatedCount = generation.slidesDone
   const isComplete =
     totalSlides > 0 &&
     generatedCount >= totalSlides &&
-    currentProject?.status === "complete"
+    currentCarousel?.status === "complete"
   const progress = totalSlides > 0 ? (generatedCount / totalSlides) * 100 : 0
 
   return (
@@ -60,7 +60,7 @@ export function ProductionStage() {
         </div>
 
         <div className="mt-10 space-y-2">
-          {currentProject?.slidePrompts.map((prompt, index) => {
+          {currentCarousel?.slidePrompts.map((prompt, index) => {
             const isGenerated = index < generatedCount
             const isGenerating = index === generatedCount && !isComplete
 

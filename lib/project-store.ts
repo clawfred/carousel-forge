@@ -1,3 +1,4 @@
+import fs from "node:fs/promises";
 import path from "node:path";
 
 import { slideNumberFromFilename } from "@/lib/image";
@@ -41,6 +42,8 @@ export interface CarouselSummary {
   palette: string;
   slideCount: number;
   renderedCount: number;
+  coverUrl: string | null;
+  updatedAt: number;
 }
 
 export interface ProjectDetail {
@@ -95,6 +98,8 @@ export async function readProject(slug: string): Promise<ProjectDetail | null> {
     const c = await readCarouselSummary(slug, cslug);
     if (c) carousels.push(c);
   }
+  // Most-recent first.
+  carousels.sort((a, b) => b.updatedAt - a.updatedAt);
 
   return {
     slug,
@@ -116,19 +121,45 @@ export async function readCarouselSummary(
   if (!(await dirExists(base))) return null;
   const meta = await readJson<CarouselMeta>(path.join(base, "metadata.json"), {});
   const slides = await readJson<string[]>(path.join(base, "slides.json"), []);
-  const rendered = await listFiles(path.join(base, "slides"));
+  const slidesDir = path.join(base, "slides");
+  const rendered = await listFiles(slidesDir);
   const slideCount = Array.isArray(slides) ? slides.length : 0;
+  const validRenders = rendered.filter((f) => {
+    if (!IMAGE_EXT_RE.test(f)) return false;
+    const n = slideNumberFromFilename(f);
+    return n !== null && n >= 1 && n <= slideCount;
+  });
+  const coverFile = validRenders.find((f) => slideNumberFromFilename(f) === 1) || null;
+  const coverUrl = coverFile
+    ? `/projects/${projectSlug}/carousels/${cslug}/slides/${coverFile}`
+    : null;
+
+  // Prefer slides.json mtime as "last activity" signal; fall back to cover render.
+  let updatedAt = 0;
+  try {
+    const stat = await fs.stat(path.join(base, "slides.json"));
+    updatedAt = stat.mtimeMs;
+  } catch {
+    // ignore
+  }
+  if (coverFile) {
+    try {
+      const stat = await fs.stat(path.join(slidesDir, coverFile));
+      if (stat.mtimeMs > updatedAt) updatedAt = stat.mtimeMs;
+    } catch {
+      // ignore
+    }
+  }
+
   return {
     slug: cslug,
     title: meta.title || cslug,
     description: meta.description || "",
     palette: meta.palette || "",
     slideCount,
-    renderedCount: rendered.filter((f) => {
-      if (!IMAGE_EXT_RE.test(f)) return false;
-      const n = slideNumberFromFilename(f);
-      return n !== null && n >= 1 && n <= slideCount;
-    }).length,
+    renderedCount: validRenders.length,
+    coverUrl,
+    updatedAt,
   };
 }
 

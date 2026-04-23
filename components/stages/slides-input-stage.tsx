@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { useAppStore } from "@/lib/store"
 
 export function SlidesInputStage() {
-  const { currentProject, addSlidePrompts, setStage } = useAppStore()
+  const { currentCarousel, addSlidePrompts, setStage } = useAppStore()
   const [bulkPrompts, setBulkPrompts] = useState("")
   
   const promptLines = bulkPrompts
@@ -54,9 +54,9 @@ export function SlidesInputStage() {
           <div className="lg:col-span-2 space-y-4">
             <p className="text-sm font-medium">Approved Cover</p>
             <div className="aspect-[4/5] rounded-xl overflow-hidden bg-muted relative">
-              {currentProject?.coverImage && (
+              {currentCarousel?.coverImage && (
                 <img 
-                  src={currentProject.coverImage} 
+                  src={currentCarousel.coverImage} 
                   alt="Approved cover"
                   className="w-full h-full object-cover"
                 />

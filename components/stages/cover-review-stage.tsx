@@ -8,35 +8,35 @@ import { Textarea } from "@/components/ui/textarea"
 import { useAppStore } from "@/lib/store"
 
 export function CoverReviewStage() {
-  const currentProject = useAppStore((s) => s.currentProject)
+  const currentCarousel = useAppStore((s) => s.currentCarousel)
   const brandSettings = useAppStore((s) => s.brandSettings)
-  const updateProject = useAppStore((s) => s.updateProject)
+  const updateCarousel = useAppStore((s) => s.updateCarousel)
   const approveCover = useAppStore((s) => s.approveCover)
   const setStage = useAppStore((s) => s.setStage)
   const generateCover = useAppStore((s) => s.generateCover)
   const generation = useAppStore((s) => s.generation)
 
-  const [editedPrompt, setEditedPrompt] = useState(currentProject?.coverPrompt || "")
+  const [editedPrompt, setEditedPrompt] = useState(currentCarousel?.coverPrompt || "")
 
   useEffect(() => {
-    if (!currentProject?.coverImage && !generation.coverInFlight) {
+    if (!currentCarousel?.coverImage && !generation.coverInFlight) {
       void generateCover()
     }
     // Intentionally only on mount.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const coverUrl = currentProject?.coverImage || null
+  const coverUrl = currentCarousel?.coverImage || null
   const isGenerating = generation.coverInFlight
   const hasBrandPrompt = Boolean(brandSettings.masterPrompt?.trim())
 
   const handleRegenerate = async () => {
-    updateProject({ coverPrompt: editedPrompt, coverImage: null })
+    updateCarousel({ coverPrompt: editedPrompt, coverImage: null })
     await generateCover()
   }
 
   const handleApprove = () => {
-    updateProject({ coverPrompt: editedPrompt })
+    updateCarousel({ coverPrompt: editedPrompt })
     approveCover()
   }
 
@@ -106,13 +106,13 @@ export function CoverReviewStage() {
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">
                   Goal
                 </p>
-                <p className="text-sm">{currentProject?.goal}</p>
+                <p className="text-sm">{currentCarousel?.goal}</p>
               </div>
               <div>
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">
                   Core Idea
                 </p>
-                <p className="text-sm">{currentProject?.coreIdea}</p>
+                <p className="text-sm">{currentCarousel?.coreIdea}</p>
               </div>
             </div>
 

@@ -8,6 +8,7 @@ export interface ReferenceImage {
   url: string
   name: string
   addedAt: Date
+  uploading?: boolean
 }
 
 export interface CarouselProject {

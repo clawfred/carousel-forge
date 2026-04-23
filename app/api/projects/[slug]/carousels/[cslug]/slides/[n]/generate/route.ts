@@ -3,11 +3,7 @@ import path from "node:path";
 
 import { NextResponse, type NextRequest } from "next/server";
 
-import {
-  cropToAspect,
-  mimeFromFilename,
-  slideNumberFromFilename,
-} from "@/lib/image";
+import { mimeFromFilename, slideNumberFromFilename } from "@/lib/image";
 import { badRequest, errorMessage, notFound } from "@/lib/http";
 import { runProvider, type RefImage } from "@/lib/providers";
 import {
@@ -134,12 +130,11 @@ export async function POST(
       .join("\n");
 
     const rawBuffer = await runProvider({ prompt, refs });
-    const finalBuffer = await cropToAspect(rawBuffer, 4, 5);
 
     const filename = `${pad2(slideNumber)}.png`;
     const outDir = path.join(cbase, "slides");
     await fs.mkdir(outDir, { recursive: true });
-    await fs.writeFile(path.join(outDir, filename), finalBuffer);
+    await fs.writeFile(path.join(outDir, filename), rawBuffer);
 
     return NextResponse.json({
       slug,

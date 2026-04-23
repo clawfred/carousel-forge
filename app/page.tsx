@@ -3,7 +3,8 @@
 import { useEffect } from "react"
 
 import { BrandSettings } from "@/components/brand-settings"
-import { StartScreen } from "@/components/start-screen"
+import { ProjectDashboard } from "@/components/project-dashboard"
+import { ProjectsHome } from "@/components/projects-home"
 import { BriefStage } from "@/components/stages/brief-stage"
 import { CoverReviewStage } from "@/components/stages/cover-review-stage"
 import { ExportStage } from "@/components/stages/export-stage"
@@ -12,12 +13,14 @@ import { SlidesInputStage } from "@/components/stages/slides-input-stage"
 import { WorkflowHeader } from "@/components/workflow-header"
 import { useAppStore } from "@/lib/store"
 
-function WorkflowContent() {
-  const currentProject = useAppStore((s) => s.currentProject)
+function Main() {
+  const currentCarousel = useAppStore((s) => s.currentCarousel)
+  const currentProjectSlug = useAppStore((s) => s.currentProjectSlug)
 
-  if (!currentProject) return <StartScreen />
+  if (!currentProjectSlug) return <ProjectsHome />
+  if (!currentCarousel) return <ProjectDashboard />
 
-  switch (currentProject.status) {
+  switch (currentCarousel.status) {
     case "brief":
       return <BriefStage />
     case "cover-review":
@@ -29,7 +32,7 @@ function WorkflowContent() {
     case "complete":
       return <ExportStage />
     default:
-      return <StartScreen />
+      return <ProjectDashboard />
   }
 }
 
@@ -45,7 +48,7 @@ export default function Home() {
       <WorkflowHeader />
       <BrandSettings />
       <main>
-        <WorkflowContent />
+        <Main />
       </main>
     </div>
   )

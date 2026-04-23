@@ -4,32 +4,33 @@ import { useState } from "react"
 import { Check, Copy, Download, ExternalLink, RotateCcw } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import { STUDIO_PROJECT_SLUG, useAppStore } from "@/lib/store"
+import { useAppStore } from "@/lib/store"
 
 export function ExportStage() {
-  const currentProject = useAppStore((s) => s.currentProject)
-  const resetProject = useAppStore((s) => s.resetProject)
+  const currentCarousel = useAppStore((s) => s.currentCarousel)
+  const currentProjectSlug = useAppStore((s) => s.currentProjectSlug)
+  const resetCarousel = useAppStore((s) => s.resetCarousel)
 
   const [isDownloading, setIsDownloading] = useState(false)
   const [downloadComplete, setDownloadComplete] = useState(false)
 
   const allImages = [
-    currentProject?.coverImage,
-    ...(currentProject?.slideImages || []),
+    currentCarousel?.coverImage,
+    ...(currentCarousel?.slideImages || []),
   ].filter((url): url is string => Boolean(url))
 
   const handleDownload = async () => {
-    if (!currentProject) return
+    if (!currentCarousel || !currentProjectSlug) return
     setIsDownloading(true)
     try {
-      const zipUrl = `/api/projects/${STUDIO_PROJECT_SLUG}/carousels/${currentProject.id}/zip`
+      const zipUrl = `/api/projects/${currentProjectSlug}/carousels/${currentCarousel.id}/zip`
       const res = await fetch(zipUrl)
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const blob = await res.blob()
       const objectUrl = URL.createObjectURL(blob)
       const a = document.createElement("a")
       a.href = objectUrl
-      a.download = `${currentProject.id}.zip`
+      a.download = `${currentCarousel.id}.zip`
       document.body.appendChild(a)
       a.click()
       a.remove()
@@ -58,7 +59,7 @@ export function ExportStage() {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <Button variant="outline" onClick={resetProject}>
+            <Button variant="outline" onClick={resetCarousel}>
               <RotateCcw className="h-4 w-4 mr-2" />
               New Carousel
             </Button>
@@ -91,19 +92,19 @@ export function ExportStage() {
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">
                 Project Name
               </p>
-              <p className="font-medium">{currentProject?.name}</p>
+              <p className="font-medium">{currentCarousel?.name}</p>
             </div>
             <div>
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">
                 Goal
               </p>
-              <p className="text-sm text-muted-foreground">{currentProject?.goal}</p>
+              <p className="text-sm text-muted-foreground">{currentCarousel?.goal}</p>
             </div>
             <div>
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">
                 Core Idea
               </p>
-              <p className="text-sm text-muted-foreground">{currentProject?.coreIdea}</p>
+              <p className="text-sm text-muted-foreground">{currentCarousel?.coreIdea}</p>
             </div>
           </div>
         </div>

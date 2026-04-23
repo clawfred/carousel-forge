@@ -91,7 +91,7 @@ async function generateWithOpenAi({ prompt, refs }: GenerateArgs): Promise<Buffe
     const form = new FormData();
     form.append("model", "gpt-image-2");
     form.append("prompt", prompt);
-    form.append("size", "1024x1536");
+    form.append("size", "auto");
     form.append("quality", "high");
     form.append("n", "1");
     for (let i = 0; i < refs.length; i++) {
@@ -115,7 +115,7 @@ async function generateWithOpenAi({ prompt, refs }: GenerateArgs): Promise<Buffe
       body: JSON.stringify({
         model: "gpt-image-2",
         prompt,
-        size: "1024x1536",
+        size: "auto",
         quality: "high",
         n: 1,
       }),

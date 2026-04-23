@@ -4,12 +4,6 @@ import { create } from "zustand"
 
 import type { BrandSettings, CarouselProject, ReferenceImage, WorkflowStage } from "./types"
 
-// The reference UI is single-brand. We pin it to a single backend project
-// slug and auto-create it on first use. Each "carousel project" in the UI
-// maps to a carousel under this project.
-const STUDIO_SLUG = "studio"
-const STUDIO_NAME = "Studio"
-
 interface GenerationState {
   coverInFlight: boolean
   slidesTotal: number
@@ -17,27 +11,64 @@ interface GenerationState {
   error: string | null
 }
 
+export interface CarouselSummary {
+  slug: string
+  title: string
+  slideCount: number
+  renderedCount: number
+  coverUrl: string | null
+  updatedAt: number
+}
+
+export interface ProjectSummary {
+  slug: string
+  name: string
+  description: string
+  carouselCount: number
+  installedFrom: string | null
+}
+
 interface AppState {
   initialized: boolean
   initialize: () => Promise<void>
 
-  brandSettings: BrandSettings
-  brandDirty: boolean
-  brandSaving: boolean
-  updateMasterPrompt: (prompt: string) => void
-  addReferenceImage: (url: string, name: string) => void
-  removeReferenceImage: (id: string) => void
-  saveBrandSettings: () => Promise<void>
-
-  currentProject: CarouselProject | null
+  // Top-level projects (workspaces).
+  projects: ProjectSummary[]
+  projectsLoading: boolean
+  currentProjectSlug: string | null
+  currentProjectName: string | null
+  refreshProjects: () => Promise<void>
+  selectProject: (slug: string) => Promise<void>
+  leaveProject: () => void
   createProject: (name: string) => Promise<void>
-  updateProject: (updates: Partial<CarouselProject>) => void
+  deleteProject: (slug: string) => Promise<void>
+
+  // Brand settings, scoped to the currently selected project.
+  brandSettings: BrandSettings
+  brandPromptDirty: boolean
+  brandPromptSaving: boolean
+  updateMasterPrompt: (prompt: string) => void
+  saveMasterPrompt: () => Promise<void>
+  addReferenceImage: (dataUri: string, name: string) => Promise<void>
+  removeReferenceImage: (id: string) => Promise<void>
+
+  // Carousels within the current project.
+  recentCarousels: CarouselSummary[]
+  recentsLoading: boolean
+  refreshRecents: () => Promise<void>
+  openCarousel: (slug: string) => Promise<void>
+  deleteCarousel: (slug: string) => Promise<void>
+
+  // Currently open carousel (the workflow target).
+  currentCarousel: CarouselProject | null
+  createCarousel: (name: string) => Promise<void>
+  updateCarousel: (updates: Partial<CarouselProject>) => void
   setStage: (stage: WorkflowStage) => void
   approveCover: () => void
   addSlidePrompts: (prompts: string[]) => Promise<void>
   generateCover: () => Promise<void>
   generateSlides: () => Promise<void>
-  resetProject: () => void
+  resetCarousel: () => void
 
   generation: GenerationState
 
@@ -86,24 +117,8 @@ async function apiFetch<T>(url: string, init?: RequestInit): Promise<T> {
   return json as T
 }
 
-async function ensureStudioProject(): Promise<void> {
-  try {
-    await apiFetch(`/api/projects/${STUDIO_SLUG}`)
-    return
-  } catch {
-    // Doesn't exist (or invalid); attempt to create.
-  }
-  try {
-    await apiFetch<{ slug: string }>("/api/projects", {
-      method: "POST",
-      body: JSON.stringify({ name: STUDIO_NAME, slug: STUDIO_SLUG }),
-    })
-  } catch (e) {
-    // 409 Conflict is fine — another tab may have created it.
-    if (!String(errorMessage(e)).toLowerCase().includes("already exists")) {
-      throw e
-    }
-  }
+interface ProjectsListApi {
+  projects: ProjectSummary[]
 }
 
 interface ProjectDetailApi {
@@ -112,30 +127,51 @@ interface ProjectDetailApi {
   description: string
   masterPrompt: string
   refs: string[]
+  carousels: CarouselSummary[]
 }
 
-async function blobToDataUri(blob: Blob): Promise<string> {
-  const buffer = await blob.arrayBuffer()
-  const bytes = new Uint8Array(buffer)
-  let binary = ""
-  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i])
-  const base64 = typeof btoa === "function" ? btoa(binary) : Buffer.from(bytes).toString("base64")
-  const mime = blob.type || "image/png"
-  return `data:${mime};base64,${base64}`
+interface CarouselDetailApi {
+  slug: string
+  title: string
+  description: string
+  goal: string
+  idea: string
+  palette: string
+  masterPromptOverride: string
+  slides: string[]
+  rendered: Record<number, string>
 }
 
-async function urlToDataUri(url: string): Promise<string> {
-  const res = await fetch(url)
-  const blob = await res.blob()
-  return blobToDataUri(blob)
+function deriveStage(detail: CarouselDetailApi): WorkflowStage {
+  const n = detail.slides.length
+  if (n === 0) return "brief"
+  const coverRendered = Boolean(detail.rendered[0])
+  if (n === 1) return coverRendered ? "cover-review" : "brief"
+  let rendered = 0
+  for (let i = 0; i < n; i++) if (detail.rendered[i]) rendered++
+  if (rendered >= n) return "complete"
+  if (coverRendered) return "slides-input"
+  return "brief"
+}
+
+function filenameFromRefUrl(url: string): string {
+  return url.split("/").pop() || ""
 }
 
 function refsToImages(refs: string[]): ReferenceImage[] {
   return refs.map((url) => {
-    const filename = url.split("/").pop() || "ref"
+    const filename = filenameFromRefUrl(url)
     const name = filename.replace(/\.[^/.]+$/, "")
-    return { id: url, url, name, addedAt: new Date() }
+    return { id: filename, url, name, addedAt: new Date(), uploading: false }
   })
+}
+
+const emptyBrand: BrandSettings = { masterPrompt: "", referenceImages: [] }
+const emptyGeneration: GenerationState = {
+  coverInFlight: false,
+  slidesTotal: 0,
+  slidesDone: 0,
+  error: null,
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -144,106 +180,277 @@ export const useAppStore = create<AppState>((set, get) => ({
   initialize: async () => {
     if (get().initialized) return
     try {
-      await ensureStudioProject()
-      const project = await apiFetch<ProjectDetailApi>(`/api/projects/${STUDIO_SLUG}`)
-      set({
-        brandSettings: {
-          masterPrompt: project.masterPrompt,
-          referenceImages: refsToImages(project.refs),
-        },
-        brandDirty: false,
-        initialized: true,
-      })
-    } catch (e) {
-      console.error("[store] initialize failed:", errorMessage(e))
+      await get().refreshProjects()
+    } finally {
       set({ initialized: true })
     }
   },
 
-  brandSettings: { masterPrompt: "", referenceImages: [] },
-  brandDirty: false,
-  brandSaving: false,
+  projects: [],
+  projectsLoading: false,
+  currentProjectSlug: null,
+  currentProjectName: null,
+
+  refreshProjects: async () => {
+    set({ projectsLoading: true })
+    try {
+      const { projects } = await apiFetch<ProjectsListApi>("/api/projects")
+      set({ projects })
+    } catch (e) {
+      console.error("[store] refreshProjects failed:", errorMessage(e))
+    } finally {
+      set({ projectsLoading: false })
+    }
+  },
+
+  selectProject: async (slug) => {
+    try {
+      const project = await apiFetch<ProjectDetailApi>(`/api/projects/${slug}`)
+      set({
+        currentProjectSlug: project.slug,
+        currentProjectName: project.name,
+        brandSettings: {
+          masterPrompt: project.masterPrompt,
+          referenceImages: refsToImages(project.refs),
+        },
+        brandPromptDirty: false,
+        recentCarousels: project.carousels,
+        currentCarousel: null,
+        generation: { ...emptyGeneration },
+      })
+    } catch (e) {
+      console.error("[store] selectProject failed:", errorMessage(e))
+    }
+  },
+
+  leaveProject: () => {
+    set({
+      currentProjectSlug: null,
+      currentProjectName: null,
+      brandSettings: { ...emptyBrand },
+      brandPromptDirty: false,
+      recentCarousels: [],
+      currentCarousel: null,
+      generation: { ...emptyGeneration },
+    })
+    void get().refreshProjects()
+  },
+
+  createProject: async (rawName) => {
+    const name = rawName.trim()
+    if (!name) return
+    const requestedSlug = `${slugify(name)}-${generateId()}`
+    try {
+      const { slug } = await apiFetch<{ slug: string }>("/api/projects", {
+        method: "POST",
+        body: JSON.stringify({ name, slug: requestedSlug }),
+      })
+      await get().refreshProjects()
+      await get().selectProject(slug)
+    } catch (e) {
+      console.error("[store] createProject failed:", errorMessage(e))
+    }
+  },
+
+  deleteProject: async (slug) => {
+    try {
+      await apiFetch(`/api/projects/${slug}`, { method: "DELETE" })
+    } catch (e) {
+      console.error("[store] deleteProject failed:", errorMessage(e))
+      return
+    }
+    set((state) => {
+      const wasCurrent = state.currentProjectSlug === slug
+      return {
+        projects: state.projects.filter((p) => p.slug !== slug),
+        ...(wasCurrent
+          ? {
+              currentProjectSlug: null,
+              currentProjectName: null,
+              brandSettings: { ...emptyBrand },
+              recentCarousels: [],
+              currentCarousel: null,
+            }
+          : {}),
+      }
+    })
+  },
+
+  brandSettings: { ...emptyBrand },
+  brandPromptDirty: false,
+  brandPromptSaving: false,
 
   updateMasterPrompt: (prompt) =>
     set((state) => ({
       brandSettings: { ...state.brandSettings, masterPrompt: prompt },
-      brandDirty: true,
+      brandPromptDirty: true,
     })),
 
-  addReferenceImage: (url, name) =>
+  saveMasterPrompt: async () => {
+    const { brandSettings, brandPromptDirty, currentProjectSlug } = get()
+    if (!brandPromptDirty || !currentProjectSlug) return
+    set({ brandPromptSaving: true })
+    try {
+      await apiFetch(`/api/projects/${currentProjectSlug}`, {
+        method: "PATCH",
+        body: JSON.stringify({ masterPrompt: brandSettings.masterPrompt }),
+      })
+      set({ brandPromptDirty: false })
+    } finally {
+      set({ brandPromptSaving: false })
+    }
+  },
+
+  addReferenceImage: async (dataUri, name) => {
+    const slug = get().currentProjectSlug
+    if (!slug) return
+    const tempId = `temp-${generateId()}`
     set((state) => ({
       brandSettings: {
         ...state.brandSettings,
         referenceImages: [
           ...state.brandSettings.referenceImages,
-          { id: generateId(), url, name, addedAt: new Date() },
+          { id: tempId, url: dataUri, name, addedAt: new Date(), uploading: true },
         ],
       },
-      brandDirty: true,
-    })),
-
-  removeReferenceImage: (id) =>
-    set((state) => ({
-      brandSettings: {
-        ...state.brandSettings,
-        referenceImages: state.brandSettings.referenceImages.filter((img) => img.id !== id),
-      },
-      brandDirty: true,
-    })),
-
-  saveBrandSettings: async () => {
-    const { brandSettings, brandDirty } = get()
-    if (!brandDirty) return
-    set({ brandSaving: true })
+    }))
     try {
-      await apiFetch(`/api/projects/${STUDIO_SLUG}`, {
-        method: "PATCH",
-        body: JSON.stringify({ masterPrompt: brandSettings.masterPrompt }),
-      })
-
-      // The refs endpoint replaces the full set. Re-hydrate any remote refs
-      // back to data URIs so nothing is lost.
-      const dataUris: string[] = []
-      for (const img of brandSettings.referenceImages) {
-        if (img.url.startsWith("data:")) dataUris.push(img.url)
-        else dataUris.push(await urlToDataUri(img.url))
-      }
-      const saved = await apiFetch<{ refs: string[] }>(
-        `/api/projects/${STUDIO_SLUG}/refs`,
+      const { filename, ref } = await apiFetch<{ filename: string; ref: string }>(
+        `/api/projects/${slug}/refs`,
         {
           method: "POST",
-          body: JSON.stringify({ refs: dataUris }),
+          body: JSON.stringify({ dataUri }),
         },
       )
-      set({
+      set((state) => ({
         brandSettings: {
-          masterPrompt: brandSettings.masterPrompt,
-          referenceImages: refsToImages(saved.refs),
+          ...state.brandSettings,
+          referenceImages: state.brandSettings.referenceImages.map((img) =>
+            img.id === tempId
+              ? { id: filename, url: ref, name, addedAt: img.addedAt, uploading: false }
+              : img,
+          ),
         },
-        brandDirty: false,
-      })
-    } finally {
-      set({ brandSaving: false })
+      }))
+    } catch (e) {
+      console.error("[store] addReferenceImage failed:", errorMessage(e))
+      set((state) => ({
+        brandSettings: {
+          ...state.brandSettings,
+          referenceImages: state.brandSettings.referenceImages.filter((img) => img.id !== tempId),
+        },
+      }))
     }
   },
 
-  currentProject: null,
+  removeReferenceImage: async (id) => {
+    const slug = get().currentProjectSlug
+    if (!slug) return
+    const img = get().brandSettings.referenceImages.find((r) => r.id === id)
+    if (!img) return
 
-  createProject: async (rawName) => {
+    set((state) => ({
+      brandSettings: {
+        ...state.brandSettings,
+        referenceImages: state.brandSettings.referenceImages.filter((r) => r.id !== id),
+      },
+    }))
+
+    // Still uploading — nothing on disk to delete.
+    if (img.uploading) return
+
+    try {
+      await apiFetch(`/api/projects/${slug}/refs/${id}`, { method: "DELETE" })
+    } catch (e) {
+      console.error("[store] removeReferenceImage failed:", errorMessage(e))
+    }
+  },
+
+  recentCarousels: [],
+  recentsLoading: false,
+
+  refreshRecents: async () => {
+    const slug = get().currentProjectSlug
+    if (!slug) return
+    set({ recentsLoading: true })
+    try {
+      const project = await apiFetch<ProjectDetailApi>(`/api/projects/${slug}`)
+      set({ recentCarousels: project.carousels })
+    } catch (e) {
+      console.error("[store] refreshRecents failed:", errorMessage(e))
+    } finally {
+      set({ recentsLoading: false })
+    }
+  },
+
+  openCarousel: async (slug) => {
+    const projectSlug = get().currentProjectSlug
+    if (!projectSlug) return
+    try {
+      const detail = await apiFetch<CarouselDetailApi>(
+        `/api/projects/${projectSlug}/carousels/${slug}`,
+      )
+      const stage = deriveStage(detail)
+      const coverImage = detail.rendered[0] || null
+      const slidePrompts = detail.slides.slice(1)
+      const slideImages = slidePrompts.map((_, i) => detail.rendered[i + 1] || "")
+      set({
+        currentCarousel: {
+          id: detail.slug,
+          name: detail.title,
+          goal: detail.goal,
+          coreIdea: detail.idea,
+          coverPrompt: detail.slides[0] || "",
+          coverImage,
+          coverApproved: stage === "slides-input" || stage === "production" || stage === "complete",
+          slidePrompts,
+          slideImages,
+          status: stage,
+          createdAt: new Date(),
+        },
+        generation: {
+          coverInFlight: false,
+          slidesTotal: slidePrompts.length,
+          slidesDone: slidePrompts.filter((_, i) => Boolean(detail.rendered[i + 1])).length,
+          error: null,
+        },
+      })
+    } catch (e) {
+      console.error("[store] openCarousel failed:", errorMessage(e))
+    }
+  },
+
+  deleteCarousel: async (slug) => {
+    const projectSlug = get().currentProjectSlug
+    if (!projectSlug) return
+    try {
+      await apiFetch(`/api/projects/${projectSlug}/carousels/${slug}`, { method: "DELETE" })
+    } catch (e) {
+      console.error("[store] deleteCarousel failed:", errorMessage(e))
+      return
+    }
+    set((state) => ({
+      recentCarousels: state.recentCarousels.filter((c) => c.slug !== slug),
+    }))
+  },
+
+  currentCarousel: null,
+
+  createCarousel: async (rawName) => {
+    const projectSlug = get().currentProjectSlug
+    if (!projectSlug) return
     const name = rawName.trim() || `Carousel ${new Date().toLocaleDateString()}`
     try {
-      await ensureStudioProject()
-      // Generate a unique-enough slug to avoid 409 collisions on same title.
       const requestedSlug = `${slugify(name)}-${generateId()}`
       const { slug } = await apiFetch<{ slug: string }>(
-        `/api/projects/${STUDIO_SLUG}/carousels`,
+        `/api/projects/${projectSlug}/carousels`,
         {
           method: "POST",
           body: JSON.stringify({ title: name, slug: requestedSlug }),
         },
       )
       set({
-        currentProject: {
+        currentCarousel: {
           id: slug,
           name,
           goal: "",
@@ -256,44 +463,46 @@ export const useAppStore = create<AppState>((set, get) => ({
           status: "brief",
           createdAt: new Date(),
         },
-        generation: { coverInFlight: false, slidesTotal: 0, slidesDone: 0, error: null },
+        generation: { ...emptyGeneration },
       })
+      void get().refreshRecents()
     } catch (e) {
-      console.error("[store] createProject failed:", errorMessage(e))
+      console.error("[store] createCarousel failed:", errorMessage(e))
       set((state) => ({
         generation: { ...state.generation, error: errorMessage(e) },
       }))
     }
   },
 
-  updateProject: (updates) =>
+  updateCarousel: (updates) =>
     set((state) => ({
-      currentProject: state.currentProject ? { ...state.currentProject, ...updates } : null,
+      currentCarousel: state.currentCarousel ? { ...state.currentCarousel, ...updates } : null,
     })),
 
   setStage: (stage) =>
     set((state) => ({
-      currentProject: state.currentProject ? { ...state.currentProject, status: stage } : null,
+      currentCarousel: state.currentCarousel ? { ...state.currentCarousel, status: stage } : null,
     })),
 
   approveCover: () =>
     set((state) => ({
-      currentProject: state.currentProject
-        ? { ...state.currentProject, coverApproved: true, status: "slides-input" }
+      currentCarousel: state.currentCarousel
+        ? { ...state.currentCarousel, coverApproved: true, status: "slides-input" }
         : null,
     })),
 
   addSlidePrompts: async (prompts) => {
     const state = get()
-    const project = state.currentProject
-    if (!project) return
-    const slides = [project.coverPrompt.trim(), ...prompts.map((p) => p.trim())]
+    const projectSlug = state.currentProjectSlug
+    const carousel = state.currentCarousel
+    if (!projectSlug || !carousel) return
+    const slides = [carousel.coverPrompt.trim(), ...prompts.map((p) => p.trim())]
     try {
-      await apiFetch(`/api/projects/${STUDIO_SLUG}/carousels/${project.id}`, {
+      await apiFetch(`/api/projects/${projectSlug}/carousels/${carousel.id}`, {
         method: "PATCH",
         body: JSON.stringify({
-          goal: project.goal,
-          idea: project.coreIdea,
+          goal: carousel.goal,
+          idea: carousel.coreIdea,
           slides,
         }),
       })
@@ -303,8 +512,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       return
     }
     set({
-      currentProject: {
-        ...project,
+      currentCarousel: {
+        ...carousel,
         slidePrompts: prompts,
         slideImages: [],
         status: "production",
@@ -314,28 +523,28 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   generateCover: async () => {
-    const project = get().currentProject
-    if (!project) return
+    const projectSlug = get().currentProjectSlug
+    const carousel = get().currentCarousel
+    if (!projectSlug || !carousel) return
     set({
       generation: { ...get().generation, coverInFlight: true, error: null },
     })
     try {
-      // Persist the brief + cover prompt as slide 1 before firing generation.
-      await apiFetch(`/api/projects/${STUDIO_SLUG}/carousels/${project.id}`, {
+      await apiFetch(`/api/projects/${projectSlug}/carousels/${carousel.id}`, {
         method: "PATCH",
         body: JSON.stringify({
-          goal: project.goal,
-          idea: project.coreIdea,
-          slides: [project.coverPrompt.trim()],
+          goal: carousel.goal,
+          idea: carousel.coreIdea,
+          slides: [carousel.coverPrompt.trim()],
         }),
       })
       const result = await apiFetch<{ url: string }>(
-        `/api/projects/${STUDIO_SLUG}/carousels/${project.id}/slides/1/generate`,
+        `/api/projects/${projectSlug}/carousels/${carousel.id}/slides/1/generate`,
         { method: "POST" },
       )
       set((state) => ({
-        currentProject: state.currentProject
-          ? { ...state.currentProject, coverImage: result.url }
+        currentCarousel: state.currentCarousel
+          ? { ...state.currentCarousel, coverImage: result.url }
           : null,
         generation: { ...state.generation, coverInFlight: false },
       }))
@@ -347,20 +556,21 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   generateSlides: async () => {
-    const project = get().currentProject
-    if (!project) return
-    const total = project.slidePrompts.length
+    const projectSlug = get().currentProjectSlug
+    const carousel = get().currentCarousel
+    if (!projectSlug || !carousel) return
+    const total = carousel.slidePrompts.length
     set({ generation: { coverInFlight: false, slidesTotal: total, slidesDone: 0, error: null } })
 
     const results: Array<{ index: number; url: string } | null> = new Array(total).fill(null)
     let hadError: string | null = null
 
     await Promise.all(
-      project.slidePrompts.map(async (_, i) => {
+      carousel.slidePrompts.map(async (_, i) => {
         const slideNumber = i + 2 // cover is slide 1
         try {
           const out = await apiFetch<{ url: string }>(
-            `/api/projects/${STUDIO_SLUG}/carousels/${project.id}/slides/${slideNumber}/generate`,
+            `/api/projects/${projectSlug}/carousels/${carousel.id}/slides/${slideNumber}/generate`,
             { method: "POST" },
           )
           results[i] = { index: i, url: out.url }
@@ -376,9 +586,9 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     const slideImages = results.map((r) => r?.url || "")
     set((state) => ({
-      currentProject: state.currentProject
+      currentCarousel: state.currentCarousel
         ? {
-            ...state.currentProject,
+            ...state.currentCarousel,
             slideImages,
             status: hadError ? "production" : "complete",
           }
@@ -387,16 +597,16 @@ export const useAppStore = create<AppState>((set, get) => ({
     }))
   },
 
-  resetProject: () =>
+  resetCarousel: () => {
     set({
-      currentProject: null,
-      generation: { coverInFlight: false, slidesTotal: 0, slidesDone: 0, error: null },
-    }),
+      currentCarousel: null,
+      generation: { ...emptyGeneration },
+    })
+    void get().refreshRecents()
+  },
 
-  generation: { coverInFlight: false, slidesTotal: 0, slidesDone: 0, error: null },
+  generation: { ...emptyGeneration },
 
   showBrandSettings: false,
   toggleBrandSettings: () => set((state) => ({ showBrandSettings: !state.showBrandSettings })),
 }))
-
-export const STUDIO_PROJECT_SLUG = STUDIO_SLUG
