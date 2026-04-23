@@ -5,7 +5,10 @@ import { ArrowRight, Sparkles, Trash2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { type CarouselSummary, useAppStore } from "@/lib/store"
+import { useBrandStore } from "@/lib/stores/brand-store"
+import { useCarouselStore } from "@/lib/stores/carousel-store"
+import { useProjectStore } from "@/lib/stores/project-store"
+import type { CarouselSummary } from "@/lib/types"
 
 function statusLabel(c: CarouselSummary): string {
   if (c.slideCount === 0) return "Brief"
@@ -29,8 +32,8 @@ function formatRelative(ts: number): string {
 }
 
 function CarouselCard({ carousel }: { carousel: CarouselSummary }) {
-  const openCarousel = useAppStore((s) => s.openCarousel)
-  const deleteCarousel = useAppStore((s) => s.deleteCarousel)
+  const openCarousel = useCarouselStore((s) => s.openCarousel)
+  const deleteCarousel = useCarouselStore((s) => s.deleteCarousel)
 
   const handleOpen = () => openCarousel(carousel.slug)
   const handleDelete = async (e: React.MouseEvent) => {
@@ -48,7 +51,6 @@ function CarouselCard({ carousel }: { carousel: CarouselSummary }) {
       >
         <div className="aspect-4/5 bg-muted relative overflow-hidden">
           {carousel.coverUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={carousel.coverUrl}
               alt={carousel.title}
@@ -84,7 +86,7 @@ function CarouselCard({ carousel }: { carousel: CarouselSummary }) {
 }
 
 function NewCarouselForm({ compact = false }: { compact?: boolean }) {
-  const createCarousel = useAppStore((s) => s.createCarousel)
+  const createCarousel = useCarouselStore((s) => s.createCarousel)
   const [name, setName] = useState("")
 
   const handleStart = () => {
@@ -110,7 +112,7 @@ function NewCarouselForm({ compact = false }: { compact?: boolean }) {
 }
 
 function EmptyState() {
-  const toggleBrandSettings = useAppStore((s) => s.toggleBrandSettings)
+  const toggleBrandSettings = useBrandStore((s) => s.toggleBrandSettings)
 
   return (
     <div className="flex-1 flex items-center justify-center px-6 py-16">
@@ -138,8 +140,8 @@ function EmptyState() {
 }
 
 function Grid({ carousels }: { carousels: CarouselSummary[] }) {
-  const toggleBrandSettings = useAppStore((s) => s.toggleBrandSettings)
-  const projectName = useAppStore((s) => s.currentProjectName)
+  const toggleBrandSettings = useBrandStore((s) => s.toggleBrandSettings)
+  const projectName = useProjectStore((s) => s.currentProjectName)
 
   return (
     <div className="min-h-[calc(100vh-73px)] px-6 py-12">
@@ -177,7 +179,7 @@ function Grid({ carousels }: { carousels: CarouselSummary[] }) {
 }
 
 export function ProjectDashboard() {
-  const carousels = useAppStore((s) => s.recentCarousels)
+  const carousels = useCarouselStore((s) => s.recentCarousels)
 
   if (carousels.length === 0) return <EmptyState />
   return <Grid carousels={carousels} />

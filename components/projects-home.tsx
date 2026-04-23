@@ -5,11 +5,12 @@ import { ArrowRight, FolderOpen, Layers, Sparkles, Trash2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { type ProjectSummary, useAppStore } from "@/lib/store"
+import { useProjectStore } from "@/lib/stores/project-store"
+import type { ProjectSummary } from "@/lib/types"
 
 function ProjectCard({ project }: { project: ProjectSummary }) {
-  const selectProject = useAppStore((s) => s.selectProject)
-  const deleteProject = useAppStore((s) => s.deleteProject)
+  const selectProject = useProjectStore((s) => s.selectProject)
+  const deleteProject = useProjectStore((s) => s.deleteProject)
 
   const handleOpen = () => selectProject(project.slug)
   const handleDelete = async (e: React.MouseEvent) => {
@@ -57,7 +58,7 @@ function ProjectCard({ project }: { project: ProjectSummary }) {
 }
 
 function NewProjectForm({ compact = false }: { compact?: boolean }) {
-  const createProject = useAppStore((s) => s.createProject)
+  const createProject = useProjectStore((s) => s.createProject)
   const [name, setName] = useState("")
   const [busy, setBusy] = useState(false)
 
@@ -166,8 +167,8 @@ function Grid({ projects }: { projects: ProjectSummary[] }) {
 }
 
 export function ProjectsHome() {
-  const projects = useAppStore((s) => s.projects)
-  const initialized = useAppStore((s) => s.initialized)
+  const projects = useProjectStore((s) => s.projects)
+  const initialized = useProjectStore((s) => s.initialized)
 
   if (!initialized) {
     return (

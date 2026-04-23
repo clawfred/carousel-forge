@@ -2,17 +2,15 @@ import fs from "node:fs/promises";
 import fsSync from "node:fs";
 import path from "node:path";
 
+import { slugify as baseSlugify } from "./slug";
+
 export const PRESETS_DIR = path.join(process.cwd(), "presets");
 export const PROJECTS_DIR = path.join(process.cwd(), "projects");
 
 const SLUG_RE = /^[a-z0-9][a-z0-9-]{0,62}$/;
 
 export function slugify(s: string): string {
-  return (s || "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 63);
+  return baseSlugify(s, 63);
 }
 
 export function validSlug(s: unknown): s is string {

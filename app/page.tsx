@@ -3,6 +3,7 @@
 import { useEffect } from "react"
 
 import { BrandSettings } from "@/components/brand-settings"
+import { ErrorBoundary } from "@/components/error-boundary"
 import { ProjectDashboard } from "@/components/project-dashboard"
 import { ProjectsHome } from "@/components/projects-home"
 import { BriefStage } from "@/components/stages/brief-stage"
@@ -11,11 +12,12 @@ import { ExportStage } from "@/components/stages/export-stage"
 import { ProductionStage } from "@/components/stages/production-stage"
 import { SlidesInputStage } from "@/components/stages/slides-input-stage"
 import { WorkflowHeader } from "@/components/workflow-header"
-import { useAppStore } from "@/lib/store"
+import { useCarouselStore } from "@/lib/stores/carousel-store"
+import { useProjectStore } from "@/lib/stores/project-store"
 
 function Main() {
-  const currentCarousel = useAppStore((s) => s.currentCarousel)
-  const currentProjectSlug = useAppStore((s) => s.currentProjectSlug)
+  const currentCarousel = useCarouselStore((s) => s.currentCarousel)
+  const currentProjectSlug = useProjectStore((s) => s.currentProjectSlug)
 
   if (!currentProjectSlug) return <ProjectsHome />
   if (!currentCarousel) return <ProjectDashboard />
@@ -37,7 +39,8 @@ function Main() {
 }
 
 export default function Home() {
-  const initialize = useAppStore((s) => s.initialize)
+  const initialize = useProjectStore((s) => s.initialize)
+  const closeCarousel = useCarouselStore((s) => s.closeCarousel)
 
   useEffect(() => {
     initialize()
@@ -48,7 +51,9 @@ export default function Home() {
       <WorkflowHeader />
       <BrandSettings />
       <main>
-        <Main />
+        <ErrorBoundary onReset={closeCarousel}>
+          <Main />
+        </ErrorBoundary>
       </main>
     </div>
   )

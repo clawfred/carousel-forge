@@ -1,23 +1,25 @@
 "use client"
 
-import { useState, useRef, useCallback } from "react"
+import { useCallback, useRef, useState } from "react"
 import { Loader2, Trash2, Upload, X } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
-import { useAppStore } from "@/lib/store"
+import { logError } from "@/lib/log"
+import { useBrandStore } from "@/lib/stores/brand-store"
+import { useProjectStore } from "@/lib/stores/project-store"
 
 export function BrandSettings() {
-  const brandSettings = useAppStore((s) => s.brandSettings)
-  const updateMasterPrompt = useAppStore((s) => s.updateMasterPrompt)
-  const addReferenceImage = useAppStore((s) => s.addReferenceImage)
-  const removeReferenceImage = useAppStore((s) => s.removeReferenceImage)
-  const showBrandSettings = useAppStore((s) => s.showBrandSettings)
-  const toggleBrandSettings = useAppStore((s) => s.toggleBrandSettings)
-  const saveMasterPrompt = useAppStore((s) => s.saveMasterPrompt)
-  const brandPromptDirty = useAppStore((s) => s.brandPromptDirty)
-  const brandPromptSaving = useAppStore((s) => s.brandPromptSaving)
-  const projectName = useAppStore((s) => s.currentProjectName)
+  const brandSettings = useBrandStore((s) => s.brandSettings)
+  const updateMasterPrompt = useBrandStore((s) => s.updateMasterPrompt)
+  const addReferenceImage = useBrandStore((s) => s.addReferenceImage)
+  const removeReferenceImage = useBrandStore((s) => s.removeReferenceImage)
+  const showBrandSettings = useBrandStore((s) => s.showBrandSettings)
+  const toggleBrandSettings = useBrandStore((s) => s.toggleBrandSettings)
+  const saveMasterPrompt = useBrandStore((s) => s.saveMasterPrompt)
+  const brandPromptDirty = useBrandStore((s) => s.brandPromptDirty)
+  const brandPromptSaving = useBrandStore((s) => s.brandPromptSaving)
+  const projectName = useProjectStore((s) => s.currentProjectName)
 
   const [isDragging, setIsDragging] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -27,7 +29,7 @@ export function BrandSettings() {
       try {
         await saveMasterPrompt()
       } catch (e) {
-        console.error("[brand-settings] save failed:", e)
+        logError("brand-settings.save", e)
         return
       }
     }
@@ -163,7 +165,6 @@ export function BrandSettings() {
                       key={img.id}
                       className="group relative aspect-square rounded-lg overflow-hidden bg-muted"
                     >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={img.url} alt={img.name} className="w-full h-full object-cover" />
                       <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/40 transition-colors" />
                       {img.uploading && (

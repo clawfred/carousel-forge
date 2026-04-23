@@ -2,9 +2,11 @@
 
 import { ArrowLeft, RotateCcw, Settings2 } from "lucide-react"
 
-import { Button } from "@/components/ui/button"
 import { ThemeToggle } from "@/components/theme-toggle"
-import { useAppStore } from "@/lib/store"
+import { Button } from "@/components/ui/button"
+import { useBrandStore } from "@/lib/stores/brand-store"
+import { useCarouselStore } from "@/lib/stores/carousel-store"
+import { useProjectStore } from "@/lib/stores/project-store"
 import type { WorkflowStage } from "@/lib/types"
 
 const stages: { key: WorkflowStage; label: string }[] = [
@@ -20,18 +22,18 @@ function getStageIndex(stage: WorkflowStage): number {
 }
 
 export function WorkflowHeader() {
-  const currentCarousel = useAppStore((s) => s.currentCarousel)
-  const currentProjectSlug = useAppStore((s) => s.currentProjectSlug)
-  const currentProjectName = useAppStore((s) => s.currentProjectName)
-  const toggleBrandSettings = useAppStore((s) => s.toggleBrandSettings)
-  const resetCarousel = useAppStore((s) => s.resetCarousel)
-  const leaveProject = useAppStore((s) => s.leaveProject)
+  const currentCarousel = useCarouselStore((s) => s.currentCarousel)
+  const closeCarousel = useCarouselStore((s) => s.closeCarousel)
+  const currentProjectSlug = useProjectStore((s) => s.currentProjectSlug)
+  const currentProjectName = useProjectStore((s) => s.currentProjectName)
+  const leaveProject = useProjectStore((s) => s.leaveProject)
+  const toggleBrandSettings = useBrandStore((s) => s.toggleBrandSettings)
 
   const currentStageIndex = currentCarousel ? getStageIndex(currentCarousel.status) : -1
 
   const handleLogoClick = () => {
     if (currentCarousel) {
-      resetCarousel()
+      closeCarousel()
     } else if (currentProjectSlug) {
       leaveProject()
     }
@@ -104,7 +106,7 @@ export function WorkflowHeader() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={resetCarousel}
+                onClick={closeCarousel}
                 className="text-muted-foreground"
               >
                 <RotateCcw className="h-4 w-4 mr-1.5" />

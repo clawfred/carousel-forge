@@ -1,23 +1,29 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { Check, Copy, Download, ExternalLink, RotateCcw } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import { useAppStore } from "@/lib/store"
+import { ApiError } from "@/lib/api"
+import { logError } from "@/lib/log"
+import { useCarouselStore } from "@/lib/stores/carousel-store"
+import { useProjectStore } from "@/lib/stores/project-store"
 
 export function ExportStage() {
-  const currentCarousel = useAppStore((s) => s.currentCarousel)
-  const currentProjectSlug = useAppStore((s) => s.currentProjectSlug)
-  const resetCarousel = useAppStore((s) => s.resetCarousel)
+  const currentCarousel = useCarouselStore((s) => s.currentCarousel)
+  const closeCarousel = useCarouselStore((s) => s.closeCarousel)
+  const currentProjectSlug = useProjectStore((s) => s.currentProjectSlug)
 
   const [isDownloading, setIsDownloading] = useState(false)
   const [downloadComplete, setDownloadComplete] = useState(false)
 
-  const allImages = [
-    currentCarousel?.coverImage,
-    ...(currentCarousel?.slideImages || []),
-  ].filter((url): url is string => Boolean(url))
+  const allImages = useMemo(
+    () =>
+      [currentCarousel?.coverImage, ...(currentCarousel?.slideImages || [])].filter(
+        (url): url is string => Boolean(url),
+      ),
+    [currentCarousel?.coverImage, currentCarousel?.slideImages],
+  )
 
   const handleDownload = async () => {
     if (!currentCarousel || !currentProjectSlug) return
@@ -25,7 +31,7 @@ export function ExportStage() {
     try {
       const zipUrl = `/api/projects/${currentProjectSlug}/carousels/${currentCarousel.id}/zip`
       const res = await fetch(zipUrl)
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      if (!res.ok) throw new ApiError(`HTTP ${res.status}`, res.status)
       const blob = await res.blob()
       const objectUrl = URL.createObjectURL(blob)
       const a = document.createElement("a")
@@ -37,7 +43,7 @@ export function ExportStage() {
       URL.revokeObjectURL(objectUrl)
       setDownloadComplete(true)
     } catch (e) {
-      console.error("[export] download failed:", e)
+      logError("export-stage.download", e)
     } finally {
       setIsDownloading(false)
     }
@@ -59,7 +65,7 @@ export function ExportStage() {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <Button variant="outline" onClick={resetCarousel}>
+            <Button variant="outline" onClick={closeCarousel}>
               <RotateCcw className="h-4 w-4 mr-2" />
               New Carousel
             </Button>
@@ -112,13 +118,12 @@ export function ExportStage() {
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
           {allImages.map((url, index) => (
             <div
-              key={index}
+              key={url}
               className="group relative aspect-[4/5] rounded-xl overflow-hidden bg-muted"
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={url}
-                alt={`Slide ${index + 1}`}
+                alt={index === 0 ? "Cover" : `Slide ${index + 1}`}
                 className="w-full h-full object-cover"
               />
               <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/30 transition-colors" />
@@ -135,7 +140,9 @@ export function ExportStage() {
                 </button>
                 <button
                   className="p-2 rounded-md bg-background/90 hover:bg-background transition-colors"
-                  onClick={() => navigator.clipboard.writeText(new URL(url, location.origin).toString())}
+                  onClick={() =>
+                    navigator.clipboard.writeText(new URL(url, location.origin).toString())
+                  }
                   aria-label="Copy URL"
                 >
                   <Copy className="h-3.5 w-3.5" />
@@ -147,8 +154,7 @@ export function ExportStage() {
 
         <div className="mt-10 pt-8 border-t border-border">
           <p className="text-sm text-muted-foreground text-center">
-            Images are optimized for social media carousel formats. Download includes all
-            {" "}
+            Images are optimized for social media carousel formats. Download includes all{" "}
             {allImages.length} images in high resolution.
           </p>
         </div>

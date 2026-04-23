@@ -1,29 +1,21 @@
 "use client"
 
-import { useEffect, useRef } from "react"
 import { Check, Loader2 } from "lucide-react"
 
-import { useAppStore } from "@/lib/store"
+import { useCarouselStore } from "@/lib/stores/carousel-store"
+import { useGenerationStore } from "@/lib/stores/generation-store"
 
 export function ProductionStage() {
-  const currentCarousel = useAppStore((s) => s.currentCarousel)
-  const generation = useAppStore((s) => s.generation)
-  const generateSlides = useAppStore((s) => s.generateSlides)
-
-  const startedRef = useRef(false)
-  useEffect(() => {
-    if (startedRef.current) return
-    startedRef.current = true
-    void generateSlides()
-  }, [generateSlides])
+  const currentCarousel = useCarouselStore((s) => s.currentCarousel)
+  const slidesDone = useGenerationStore((s) => s.slidesDone)
+  const error = useGenerationStore((s) => s.error)
 
   const totalSlides = currentCarousel?.slidePrompts.length || 0
-  const generatedCount = generation.slidesDone
   const isComplete =
     totalSlides > 0 &&
-    generatedCount >= totalSlides &&
+    slidesDone >= totalSlides &&
     currentCarousel?.status === "complete"
-  const progress = totalSlides > 0 ? (generatedCount / totalSlides) * 100 : 0
+  const progress = totalSlides > 0 ? (slidesDone / totalSlides) * 100 : 0
 
   return (
     <div className="min-h-[calc(100vh-73px)] flex items-center justify-center px-6 py-16">
@@ -46,11 +38,9 @@ export function ProductionStage() {
         <p className="text-muted-foreground mb-2">
           {isComplete
             ? "Your carousel is complete"
-            : `${generatedCount} of ${totalSlides} slides generated`}
+            : `${slidesDone} of ${totalSlides} slides generated`}
         </p>
-        {generation.error && (
-          <p className="text-xs text-destructive mb-6">{generation.error}</p>
-        )}
+        {error && <p className="text-xs text-destructive mb-6">{error}</p>}
 
         <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden mt-6">
           <div
@@ -61,11 +51,13 @@ export function ProductionStage() {
 
         <div className="mt-10 space-y-2">
           {currentCarousel?.slidePrompts.map((prompt, index) => {
-            const isGenerated = index < generatedCount
-            const isGenerating = index === generatedCount && !isComplete
+            const isGenerated = index < slidesDone
+            const isGenerating = index === slidesDone && !isComplete
 
             return (
               <div
+                // Slide prompts are a fixed, ordered list for the stage — position is the stable identity.
+                // eslint-disable-next-line react/no-array-index-key
                 key={index}
                 className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-left transition-colors ${
                   isGenerated

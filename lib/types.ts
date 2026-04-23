@@ -8,8 +8,15 @@ export interface ReferenceImage {
   url: string
   name: string
   addedAt: Date
-  uploading?: boolean
+  uploading: boolean
 }
+
+export type WorkflowStage =
+  | "brief"
+  | "cover-review"
+  | "slides-input"
+  | "production"
+  | "complete"
 
 export interface CarouselProject {
   id: string
@@ -21,8 +28,23 @@ export interface CarouselProject {
   coverApproved: boolean
   slidePrompts: string[]
   slideImages: string[]
-  status: 'brief' | 'cover-review' | 'slides-input' | 'production' | 'complete'
+  status: WorkflowStage
   createdAt: Date
 }
 
-export type WorkflowStage = 'brief' | 'cover-review' | 'slides-input' | 'production' | 'complete'
+export interface CarouselSummary {
+  slug: string
+  title: string
+  slideCount: number
+  renderedCount: number
+  coverUrl: string | null
+  updatedAt: number
+}
+
+export interface ProjectSummary {
+  slug: string
+  name: string
+  description: string
+  carouselCount: number
+  installedFrom: string | null
+}

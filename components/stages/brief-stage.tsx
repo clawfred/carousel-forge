@@ -1,30 +1,28 @@
 "use client"
 
-import { useState } from "react"
 import { ArrowRight, Sparkles } from "lucide-react"
+
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { useAppStore } from "@/lib/store"
+import { useBrandStore } from "@/lib/stores/brand-store"
+import { useCarouselStore } from "@/lib/stores/carousel-store"
 
 export function BriefStage() {
-  const { currentCarousel, updateCarousel, setStage, brandSettings } = useAppStore()
-  
-  const [goal, setGoal] = useState(currentCarousel?.goal || "")
-  const [coreIdea, setCoreIdea] = useState(currentCarousel?.coreIdea || "")
-  const [coverPrompt, setCoverPrompt] = useState(currentCarousel?.coverPrompt || "")
-  
-  const canProceed = goal.trim() && coreIdea.trim() && coverPrompt.trim()
-  
-  const handleGenerateCover = () => {
-    updateCarousel({ goal, coreIdea, coverPrompt })
-    setStage('cover-review')
-  }
-  
+  const currentCarousel = useCarouselStore((s) => s.currentCarousel)
+  const updateCurrent = useCarouselStore((s) => s.updateCurrent)
+  const setStage = useCarouselStore((s) => s.setStage)
+  const brandSettings = useBrandStore((s) => s.brandSettings)
+
+  const goal = currentCarousel?.goal ?? ""
+  const coreIdea = currentCarousel?.coreIdea ?? ""
+  const coverPrompt = currentCarousel?.coverPrompt ?? ""
+
+  const canProceed = Boolean(goal.trim() && coreIdea.trim() && coverPrompt.trim())
+
   return (
     <div className="min-h-[calc(100vh-73px)] flex items-center justify-center px-6 py-16">
       <div className="w-full max-w-2xl">
-        {/* Stage Label */}
         <div className="mb-12">
           <span className="text-xs font-medium tracking-widest text-muted-foreground uppercase">
             Step 1 of 4
@@ -36,10 +34,8 @@ export function BriefStage() {
             Lock in your creative direction before generating the full set.
           </p>
         </div>
-        
-        {/* Form */}
+
         <div className="space-y-8">
-          {/* Carousel Goal */}
           <div className="space-y-3">
             <label className="block">
               <span className="text-sm font-medium">Carousel Goal</span>
@@ -49,13 +45,12 @@ export function BriefStage() {
             </label>
             <Input
               value={goal}
-              onChange={(e) => setGoal(e.target.value)}
+              onChange={(e) => updateCurrent({ goal: e.target.value })}
               placeholder="e.g., Drive signups for the new product launch"
               className="h-12"
             />
           </div>
-          
-          {/* Core Idea */}
+
           <div className="space-y-3">
             <label className="block">
               <span className="text-sm font-medium">Core Idea</span>
@@ -65,13 +60,12 @@ export function BriefStage() {
             </label>
             <Input
               value={coreIdea}
-              onChange={(e) => setCoreIdea(e.target.value)}
+              onChange={(e) => updateCurrent({ coreIdea: e.target.value })}
               placeholder="e.g., 5 reasons your morning routine is killing your productivity"
               className="h-12"
             />
           </div>
-          
-          {/* Cover Prompt */}
+
           <div className="space-y-3">
             <label className="block">
               <span className="text-sm font-medium">Cover Prompt</span>
@@ -81,7 +75,7 @@ export function BriefStage() {
             </label>
             <Textarea
               value={coverPrompt}
-              onChange={(e) => setCoverPrompt(e.target.value)}
+              onChange={(e) => updateCurrent({ coverPrompt: e.target.value })}
               placeholder="e.g., A person standing confidently at a minimalist desk at sunrise, warm golden light, clean composition, text overlay area on the right third..."
               className="min-h-[120px] resize-none leading-relaxed"
             />
@@ -93,12 +87,11 @@ export function BriefStage() {
             )}
           </div>
         </div>
-        
-        {/* Action */}
+
         <div className="mt-12 flex justify-end">
-          <Button 
+          <Button
             size="lg"
-            onClick={handleGenerateCover}
+            onClick={() => setStage("cover-review")}
             disabled={!canProceed}
             className="h-12 px-6"
           >
