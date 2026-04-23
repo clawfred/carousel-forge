@@ -161,12 +161,21 @@
 
         <div class="card">
           <label class="lbl">run controls</label>
-          <div class="row gap">
+          <div class="row gap wrap">
             <button id="previewBtn" class="primary">preview slide 1</button>
             <button id="generateAllBtn" class="secondary">generate 2-N</button>
             <button id="regenAllBtn" class="ghost">regen all</button>
           </div>
           <div id="runStatus" class="status">idle</div>
+        </div>
+
+        <div class="card">
+          <div class="row between">
+            <label class="lbl">export</label>
+            <span id="renderedCount" class="hint">0 rendered</span>
+          </div>
+          <div class="hint">downloads a zip containing <code>&lt;carousel-slug&gt;/01.png, 02.png…</code></div>
+          <button id="downloadZipBtn" class="secondary" disabled>download zip</button>
         </div>
       </section>
 

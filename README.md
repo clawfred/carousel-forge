@@ -43,7 +43,7 @@ Projects are gitignored. Presets are the thing the repo ships.
 2. **In the project view,** drop up to 5 reference images into the library and edit the master prompt. Both apply to every carousel.
 3. **Create or open a carousel.** Edit slide texts. Optionally override the master prompt or add a palette note for this carousel only.
 4. **Preview slide 1.** If it looks right, click **generate 2-N** to fan out the rest. If not, tweak the prompt and preview again — you haven't burned N renders on a bad prompt.
-5. **Grab the files** from `projects/<project-slug>/carousels/<carousel-slug>/slides/`. Ready to post.
+5. **Download the zip.** The export card hands you `<carousel-slug>.zip` containing the slides numbered `01.png, 02.png, …`. Or grab them directly from `projects/<project-slug>/carousels/<carousel-slug>/slides/`.
 
 ## Files on disk
 
@@ -87,6 +87,5 @@ Each slide row has its own **generate** button. Click it anytime — the output 
 
 ## Known limits
 
-- No zip download. Drag files from Finder/Files instead.
 - No undo for a bad render — it overwrites the file at that slide number. Your slide texts are preserved in `slides.json`.
 - Grok's multi-image edit payload shape is inferred. See troubleshooting.

@@ -9,6 +9,7 @@ import fsSync from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
+import archiver from 'archiver';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -682,6 +683,47 @@ app.post('/api/projects/:slug/carousels/:cslug/slides/:n/generate', async (req, 
     });
   } catch (e) {
     res.status(500).json({ error: String(e.message || e), ms: Date.now() - started });
+  }
+});
+
+// ─── Zip download ───────────────────────────────────────────────────
+
+app.get('/api/projects/:slug/carousels/:cslug/zip', async (req, res) => {
+  try {
+    const { slug, cslug } = req.params;
+    if (!validSlug(slug) || !validSlug(cslug)) {
+      return res.status(400).json({ error: 'invalid slug' });
+    }
+    const cbase = safeJoin(PROJECTS_DIR, slug, 'carousels', cslug);
+    if (!(await dirExists(cbase))) {
+      return res.status(404).json({ error: 'carousel not found' });
+    }
+    const slidesDir = path.join(cbase, 'slides');
+    const files = (await listFiles(slidesDir))
+      .filter((f) => /\.(png|jpg|jpeg|webp)$/i.test(f))
+      .sort();
+    if (files.length === 0) {
+      return res.status(404).json({ error: 'no rendered slides yet' });
+    }
+
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Disposition', `attachment; filename="${cslug}.zip"`);
+
+    const archive = archiver('zip', { zlib: { level: 9 } });
+    archive.on('warning', (err) => { if (err.code !== 'ENOENT') throw err; });
+    archive.on('error', (err) => {
+      console.error('[zip]', err);
+      if (!res.headersSent) res.status(500).json({ error: String(err.message || err) });
+      else res.end();
+    });
+    archive.pipe(res);
+    for (const f of files) {
+      archive.file(path.join(slidesDir, f), { name: `${cslug}/${f}` });
+    }
+    await archive.finalize();
+  } catch (e) {
+    if (!res.headersSent) res.status(500).json({ error: String(e.message || e) });
+    else res.end();
   }
 });
 

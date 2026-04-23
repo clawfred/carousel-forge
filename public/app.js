@@ -316,6 +316,18 @@ function renderCarouselDetail() {
   }
 
   renderSlides();
+  updateExportControls();
+}
+
+function updateExportControls() {
+  const c = state.carousel;
+  if (!c) return;
+  const renderedCount = Object.keys(c.rendered || {}).length;
+  const total = c.slides.length;
+  const countEl = document.getElementById('renderedCount');
+  if (countEl) countEl.textContent = `${renderedCount}/${total} rendered`;
+  const btn = document.getElementById('downloadZipBtn');
+  if (btn) btn.disabled = renderedCount === 0;
 }
 
 function renderSlides() {
@@ -347,6 +359,7 @@ function renderSlides() {
     node.querySelector('.remove').addEventListener('click', () => removeSlide(i));
     list.appendChild(node);
   });
+  updateExportControls();
 }
 
 async function persistSlides() {
@@ -387,6 +400,7 @@ function setSlideImage(i, url) {
   out.innerHTML = `<img src="${url}?t=${Date.now()}" alt="slide ${i + 1}" />`;
   row.querySelector('.open').disabled = false;
   state.carousel.rendered[i] = url;
+  updateExportControls();
 }
 
 function setRunStatus(text, cls) {
@@ -664,7 +678,20 @@ function wireCarouselDetailView() {
       .filter((i) => state.carousel.slides[i].trim());
     state.carousel.rendered = {};
     renderSlides();
+    updateExportControls();
     await generateMany(indices);
+  });
+
+  document.getElementById('downloadZipBtn').addEventListener('click', () => {
+    if (!state.currentProjectSlug || !state.currentCarouselSlug) return;
+    const url = `/api/projects/${state.currentProjectSlug}/carousels/${state.currentCarouselSlug}/zip`;
+    // Trigger browser download via Content-Disposition header.
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = ''; // let server filename win
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
   });
 }
 
