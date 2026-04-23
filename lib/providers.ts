@@ -1,6 +1,6 @@
 import { bufferToDataUri } from "@/lib/image";
 
-export const PROVIDER = (process.env.PROVIDER || "xai").toLowerCase();
+export const PROVIDER = (process.env.PROVIDER || "openai").toLowerCase();
 export const GROK_ASPECT_RATIO = process.env.GROK_ASPECT_RATIO || "3:4";
 export const GROK_RESOLUTION = process.env.GROK_RESOLUTION || "2k";
 
@@ -131,6 +131,6 @@ async function generateWithOpenAi({ prompt, refs }: GenerateArgs): Promise<Buffe
 }
 
 export async function runProvider(args: GenerateArgs): Promise<Buffer> {
-  if (PROVIDER === "openai") return generateWithOpenAi(args);
-  return generateWithXai(args);
+  if (PROVIDER === "xai") return generateWithXai(args);
+  return generateWithOpenAi(args);
 }

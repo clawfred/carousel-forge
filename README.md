@@ -26,14 +26,14 @@ Node 20+ required. Open [http://localhost:4321](http://localhost:4321).
 
 ### Which provider?
 
-| | `PROVIDER=xai` (Grok) | `PROVIDER=openai` (`gpt-image-2`) |
+| | `PROVIDER=openai` (`gpt-image-2`) | `PROVIDER=xai` (Grok) |
 |---|---|---|
-| Multi-ref | up to 5 | up to 16 |
-| Native portrait | 3:4 (tool center-crops to 4:5) | 1024×1536 / 2:3 (tool center-crops to 4:5) |
+| Multi-ref | up to 16 | up to 5 |
+| Native portrait | 1024×1536 / 2:3 (tool center-crops to 4:5) | 3:4 (tool center-crops to 4:5) |
 | Primary endpoint | `/v1/images/edits` | `/v1/images/edits` |
-| Notes | Grok's multi-image payload shape is inferred from docs. If Grok rejects the array, switch `PROVIDER=openai` in `.env` and restart. | Strongest instruction-following. Slower. |
+| Notes | Strongest instruction-following. Slower. | Faster and cheaper. Grok's multi-image payload shape is inferred from docs; if Grok rejects the array, switch back to `PROVIDER=openai`. |
 
-Default is `xai`.
+Default is `openai`.
 
 ## Concepts
 
@@ -86,7 +86,7 @@ Each slide row has its own **generate** button. Click it anytime — the output 
 
 ## Troubleshooting
 
-- **"xAI 400: invalid image field"** — Grok may not accept the inferred array shape. Switch `PROVIDER=openai` in `.env` and restart.
+- **"xAI 400: invalid image field"** — Grok may not accept the inferred array shape. Switch back to `PROVIDER=openai` in `.env` and restart.
 - **Outputs look too close to one reference** — try reducing refs to the 2-3 most representative ones.
 - **Cropped output looks tight** — 4:5 crop is center-based. For top- or bottom-weighted content, bump `GROK_ASPECT_RATIO=9:16` in `.env` for a taller render with more crop slack.
 - **Port 4321 in use** — change `PORT` in `.env`.
