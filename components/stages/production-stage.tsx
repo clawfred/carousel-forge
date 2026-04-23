@@ -1,0 +1,107 @@
+"use client"
+
+import { useEffect, useRef } from "react"
+import { Check, Loader2 } from "lucide-react"
+
+import { useAppStore } from "@/lib/store"
+
+export function ProductionStage() {
+  const currentProject = useAppStore((s) => s.currentProject)
+  const generation = useAppStore((s) => s.generation)
+  const generateSlides = useAppStore((s) => s.generateSlides)
+
+  const startedRef = useRef(false)
+  useEffect(() => {
+    if (startedRef.current) return
+    startedRef.current = true
+    void generateSlides()
+  }, [generateSlides])
+
+  const totalSlides = currentProject?.slidePrompts.length || 0
+  const generatedCount = generation.slidesDone
+  const isComplete =
+    totalSlides > 0 &&
+    generatedCount >= totalSlides &&
+    currentProject?.status === "complete"
+  const progress = totalSlides > 0 ? (generatedCount / totalSlides) * 100 : 0
+
+  return (
+    <div className="min-h-[calc(100vh-73px)] flex items-center justify-center px-6 py-16">
+      <div className="w-full max-w-md text-center">
+        <div className="mb-8">
+          {isComplete ? (
+            <div className="w-16 h-16 mx-auto rounded-full bg-foreground flex items-center justify-center">
+              <Check className="h-8 w-8 text-background" />
+            </div>
+          ) : (
+            <div className="w-16 h-16 mx-auto rounded-full border-2 border-border flex items-center justify-center">
+              <Loader2 className="h-8 w-8 text-foreground animate-spin" />
+            </div>
+          )}
+        </div>
+
+        <h2 className="text-xl font-semibold tracking-tight mb-2">
+          {isComplete ? "All slides ready" : "Generating slides..."}
+        </h2>
+        <p className="text-muted-foreground mb-2">
+          {isComplete
+            ? "Your carousel is complete"
+            : `${generatedCount} of ${totalSlides} slides generated`}
+        </p>
+        {generation.error && (
+          <p className="text-xs text-destructive mb-6">{generation.error}</p>
+        )}
+
+        <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden mt-6">
+          <div
+            className="h-full bg-foreground transition-all duration-500 ease-out"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+
+        <div className="mt-10 space-y-2">
+          {currentProject?.slidePrompts.map((prompt, index) => {
+            const isGenerated = index < generatedCount
+            const isGenerating = index === generatedCount && !isComplete
+
+            return (
+              <div
+                key={index}
+                className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-left transition-colors ${
+                  isGenerated
+                    ? "bg-muted/50"
+                    : isGenerating
+                      ? "bg-muted/30"
+                      : ""
+                }`}
+              >
+                <div
+                  className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${
+                    isGenerated
+                      ? "bg-foreground"
+                      : isGenerating
+                        ? "border-2 border-foreground"
+                        : "border border-border"
+                  }`}
+                >
+                  {isGenerated && <Check className="h-3 w-3 text-background" />}
+                  {isGenerating && (
+                    <div className="w-2 h-2 bg-foreground rounded-full animate-pulse" />
+                  )}
+                </div>
+                <span
+                  className={`text-sm truncate ${
+                    isGenerated || isGenerating ? "text-foreground" : "text-muted-foreground"
+                  }`}
+                >
+                  Slide {index + 2}: {prompt.slice(0, 50)}
+                  {prompt.length > 50 ? "..." : ""}
+                </span>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    </div>
+  )
+}

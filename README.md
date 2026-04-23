@@ -1,6 +1,6 @@
 # carousel-forge
 
-Local web tool for parallel carousel slide generation via xAI Grok or OpenAI gpt-image-1.
+Local web tool for parallel carousel slide generation via xAI Grok or OpenAI `gpt-image-2`.
 
 Create a **project** (a brand), drop in your reference images and master prompt once, then spin up as many **carousels** as you want under that project. Each carousel is a set of slide texts; the tool fans them out in parallel and saves the outputs as `01.png`, `02.png`, … ready to drag into Instagram or TikTok.
 
@@ -20,7 +20,7 @@ Node 20+ required. Open [http://localhost:4321](http://localhost:4321).
 
 ### Which provider?
 
-| | `PROVIDER=xai` (Grok) | `PROVIDER=openai` (gpt-image-1) |
+| | `PROVIDER=xai` (Grok) | `PROVIDER=openai` (`gpt-image-2`) |
 |---|---|---|
 | Multi-ref | up to 5 | up to 16 |
 | Native portrait | 3:4 (tool center-crops to 4:5) | 1024×1536 / 2:3 (tool center-crops to 4:5) |
