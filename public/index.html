@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Carousel Forge</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <strong>carousel-forge</strong>
+      <span class="sub">parallel slide generator</span>
+    </div>
+    <div class="actions">
+      <span class="provider" id="providerBadge">provider: —</span>
+      <button id="resetBtn" class="ghost" title="Clear local state">reset</button>
+    </div>
+  </header>
+
+  <main class="grid">
+    <section class="col left">
+      <div class="card">
+        <label class="lbl">carousel name</label>
+        <input id="carouselName" placeholder="e.g. carousel-01-accent-myth" />
+        <div class="hint" id="slugPreview">slug: —</div>
+      </div>
+
+      <div class="card">
+        <label class="lbl">references (drag up to 5)</label>
+        <div id="dropzone" class="dropzone">
+          <span>drag images here or click to select</span>
+          <input type="file" id="refInput" multiple accept="image/*" hidden />
+        </div>
+        <div id="refGrid" class="refgrid"></div>
+      </div>
+
+      <div class="card">
+        <div class="row between">
+          <label class="lbl">master prompt</label>
+          <button id="loadDefaultPrompt" class="ghost small">load default</button>
+        </div>
+        <textarea id="masterPrompt" rows="14" placeholder="short master prompt here"></textarea>
+      </div>
+
+      <div class="card">
+        <label class="lbl">run controls</label>
+        <div class="row gap">
+          <button id="previewBtn" class="primary">preview slide 1</button>
+          <button id="generateAllBtn" class="secondary" disabled>generate 2-N</button>
+          <button id="regenAllBtn" class="ghost" disabled>regen all (1-N)</button>
+        </div>
+        <div id="runStatus" class="status">idle</div>
+      </div>
+    </section>
+
+    <section class="col right">
+      <div class="card">
+        <div class="row between">
+          <label class="lbl">slides</label>
+          <div class="row gap">
+            <button id="addSlideBtn" class="ghost small">+ add slide</button>
+            <button id="loadCarousel1Btn" class="ghost small">load carousel #1 preset</button>
+          </div>
+        </div>
+        <div id="slidesList" class="slides"></div>
+      </div>
+    </section>
+  </main>
+
+  <template id="slideRowTpl">
+    <div class="slide-row" data-slide="">
+      <div class="slide-head">
+        <span class="num"></span>
+        <div class="slide-actions">
+          <button class="gen ghost small">generate</button>
+          <button class="open ghost small" disabled>open</button>
+          <button class="remove ghost small" title="Remove slide">x</button>
+        </div>
+      </div>
+      <div class="slide-body">
+        <textarea rows="6" placeholder="SLIDE TEXT: headline, body, any pills/lists, slide number"></textarea>
+        <div class="slide-output">
+          <div class="placeholder">no render yet</div>
+        </div>
+      </div>
+      <div class="slide-status">idle</div>
+    </div>
+  </template>
+
+  <script src="/app.js"></script>
+</body>
+</html>

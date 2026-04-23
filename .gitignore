@@ -1,0 +1,4 @@
+node_modules
+.env
+renders/**
+!renders/.gitkeep
