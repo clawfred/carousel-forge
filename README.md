@@ -1,19 +1,25 @@
 # carousel-forge
 
+[![ci](https://github.com/clawfred/carousel-forge/actions/workflows/ci.yml/badge.svg)](https://github.com/clawfred/carousel-forge/actions/workflows/ci.yml)
+[![license](https://img.shields.io/badge/license-MIT-black.svg)](./LICENSE)
+
 Local web tool for parallel carousel slide generation via xAI Grok or OpenAI `gpt-image-2`.
 
 Create a **project** (a brand), drop in your reference images and master prompt once, then spin up as many **carousels** as you want under that project. Each carousel is a set of slide texts; the tool fans them out in parallel and saves the outputs as `01.png`, `02.png`, … ready to drag into Instagram or TikTok.
 
 Ship presets in the repo, install them into local projects with one click.
 
-## Setup (one time)
+> **Runs entirely on your machine.** Your API keys, reference images, and generated slides never leave the box except to hit the image provider you configured.
+
+## Setup
 
 ```sh
+git clone https://github.com/clawfred/carousel-forge.git
 cd carousel-forge
 npm install
 cp .env.example .env
 # Edit .env — set PROVIDER and paste your key(s)
-npm start
+npm run dev
 ```
 
 Node 20+ required. Open [http://localhost:4321](http://localhost:4321).
@@ -89,3 +95,18 @@ Each slide row has its own **generate** button. Click it anytime — the output 
 
 - No undo for a bad render — it overwrites the file at that slide number. Your slide texts are preserved in `slides.json`.
 - Grok's multi-image edit payload shape is inferred. See troubleshooting.
+
+## Contributing
+
+PRs welcome. See [CONTRIBUTING.md](./CONTRIBUTING.md) for dev setup and expectations. Before pushing:
+
+```sh
+npm run typecheck
+npm run lint
+```
+
+Both run automatically in CI on every PR.
+
+## License
+
+[MIT](./LICENSE) © Kerem Gürel

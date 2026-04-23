@@ -3,6 +3,29 @@
   "version": "0.1.0",
   "private": true,
   "description": "Local web tool for parallel carousel slide generation via xAI Grok or OpenAI gpt-image-2.",
+  "license": "MIT",
+  "author": "Kerem Gürel <cankeremgurel@gmail.com>",
+  "homepage": "https://github.com/clawfred/carousel-forge#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/clawfred/carousel-forge.git"
+  },
+  "bugs": {
+    "url": "https://github.com/clawfred/carousel-forge/issues"
+  },
+  "keywords": [
+    "carousel",
+    "instagram",
+    "tiktok",
+    "social-media",
+    "image-generation",
+    "ai",
+    "openai",
+    "gpt-image",
+    "xai",
+    "grok",
+    "nextjs"
+  ],
   "type": "module",
   "scripts": {
     "dev": "next dev -p 4321",
