@@ -1,4 +1,4 @@
 node_modules
 .env
-renders/**
-!renders/.gitkeep
+projects/**
+!projects/.gitkeep

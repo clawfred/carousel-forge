@@ -1,0 +1,5 @@
+{
+  "name": "CELPIP Speaking Coach",
+  "description": "iOS app for CELPIP exam prep. 4:5 portrait carousels for Instagram and TikTok. Editorial system locked; palette flexes per carousel (light or dark, single accent color).",
+  "masterPrompt": "CELPIP Speaking Coach is an iOS app for English exam prep. I'm making 4:5 portrait carousels for Instagram and TikTok.\n\nMatch the composition of the attached reference slides exactly. What varies per carousel:\n- Background: near-black, warm off-white, or a full grainy gradient.\n- Main text: white or black, whichever contrasts the background.\n- Accent color: ONE of blue or gold per carousel, used for the highlight block behind one word, the underline scribble, the save-this-for-later cue, the side rule on body text, and any accent word. The exact blue shade can vary across carousels.\n- Grainy gradient position: side, corner, top, or bottom. Keep the grain texture.\n\nNo hashtags, no topic tags, no divider line across the top.\n\nI'll send each slide's text only. You own composition from the references."
+}

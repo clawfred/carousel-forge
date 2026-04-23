@@ -14,58 +14,172 @@
     </div>
     <div class="actions">
       <span class="provider" id="providerBadge">provider: —</span>
-      <button id="resetBtn" class="ghost" title="Clear local state">reset</button>
     </div>
   </header>
 
-  <main class="grid">
-    <section class="col left">
-      <div class="card">
-        <label class="lbl">carousel name</label>
-        <input id="carouselName" placeholder="e.g. carousel-01-accent-myth" />
-        <div class="hint" id="slugPreview">slug: —</div>
-      </div>
+  <nav class="breadcrumb" id="breadcrumb" hidden>
+    <a href="#" data-nav="project-list">projects</a>
+    <span class="crumb" id="crumbProject"></span>
+    <span class="crumb" id="crumbCarousel"></span>
+  </nav>
 
-      <div class="card">
-        <label class="lbl">references (drag up to 5)</label>
-        <div id="dropzone" class="dropzone">
-          <span>drag images here or click to select</span>
-          <input type="file" id="refInput" multiple accept="image/*" hidden />
+  <!-- ═══════════════════ VIEW 1: project list ═══════════════════ -->
+  <main id="viewProjectList" class="view">
+    <section class="card">
+      <div class="row between">
+        <div>
+          <div class="lbl">your projects</div>
+          <div class="hint">one project per brand. refs and master prompt live here.</div>
         </div>
-        <div id="refGrid" class="refgrid"></div>
+        <button id="openNewProjectBtn" class="primary small">+ new blank project</button>
       </div>
-
-      <div class="card">
-        <div class="row between">
-          <label class="lbl">master prompt</label>
-          <button id="loadDefaultPrompt" class="ghost small">load default</button>
-        </div>
-        <textarea id="masterPrompt" rows="14" placeholder="short master prompt here"></textarea>
-      </div>
-
-      <div class="card">
-        <label class="lbl">run controls</label>
-        <div class="row gap">
-          <button id="previewBtn" class="primary">preview slide 1</button>
-          <button id="generateAllBtn" class="secondary" disabled>generate 2-N</button>
-          <button id="regenAllBtn" class="ghost" disabled>regen all (1-N)</button>
-        </div>
-        <div id="runStatus" class="status">idle</div>
-      </div>
+      <div id="projectsList" class="list"></div>
     </section>
 
-    <section class="col right">
-      <div class="card">
-        <div class="row between">
-          <label class="lbl">slides</label>
-          <div class="row gap">
-            <button id="addSlideBtn" class="ghost small">+ add slide</button>
-            <button id="loadCarousel1Btn" class="ghost small">load carousel #1 preset</button>
+    <section class="card">
+      <div class="lbl">install from preset</div>
+      <div class="hint">read-only templates that ship with the repo. installing copies the carousels into a new project.</div>
+      <div id="presetsList" class="list"></div>
+    </section>
+
+    <div id="newProjectDialog" class="dialog" hidden>
+      <div class="dialog-panel">
+        <div class="lbl">new blank project</div>
+        <label class="field">
+          <span>name</span>
+          <input id="newProjectName" placeholder="e.g. my brand" />
+        </label>
+        <label class="field">
+          <span>description (optional)</span>
+          <input id="newProjectDesc" placeholder="one-line description" />
+        </label>
+        <label class="field">
+          <span>master prompt (optional — you can fill this in after)</span>
+          <textarea id="newProjectPrompt" rows="6"></textarea>
+        </label>
+        <div class="row gap end">
+          <button id="cancelNewProject" class="ghost small">cancel</button>
+          <button id="createProjectBtn" class="primary small">create</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ═══════════════════ VIEW 2: project detail ═══════════════════ -->
+  <main id="viewProject" class="view" hidden>
+    <div class="grid">
+      <section class="col left">
+        <div class="card">
+          <label class="lbl">project name</label>
+          <input id="projectName" />
+          <label class="lbl mt">description</label>
+          <input id="projectDesc" />
+          <div class="row gap end">
+            <button id="deleteProjectBtn" class="ghost small danger">delete project</button>
           </div>
         </div>
-        <div id="slidesList" class="slides"></div>
+
+        <div class="card">
+          <label class="lbl">reference library (drag up to 5)</label>
+          <div class="hint">shared across every carousel in this project.</div>
+          <div id="dropzone" class="dropzone">
+            <span>drag images here or click to select</span>
+            <input type="file" id="refInput" multiple accept="image/*" hidden />
+          </div>
+          <div id="refGrid" class="refgrid"></div>
+        </div>
+
+        <div class="card">
+          <label class="lbl">master prompt</label>
+          <div class="hint">applies to every carousel unless a carousel overrides it.</div>
+          <textarea id="masterPrompt" rows="14" placeholder="describe the brand composition rules"></textarea>
+        </div>
+      </section>
+
+      <section class="col right">
+        <div class="card">
+          <div class="row between">
+            <label class="lbl">carousels</label>
+            <button id="newCarouselBtn" class="ghost small">+ new carousel</button>
+          </div>
+          <div id="carouselsList" class="list"></div>
+        </div>
+      </section>
+    </div>
+
+    <div id="newCarouselDialog" class="dialog" hidden>
+      <div class="dialog-panel">
+        <div class="lbl">new carousel</div>
+        <label class="field">
+          <span>title</span>
+          <input id="newCarouselTitle" placeholder="e.g. Carousel #02 — Listenability Drill" />
+        </label>
+        <label class="field">
+          <span>description (optional)</span>
+          <input id="newCarouselDesc" placeholder="what this carousel is about" />
+        </label>
+        <div class="row gap end">
+          <button id="cancelNewCarousel" class="ghost small">cancel</button>
+          <button id="createCarouselBtn" class="primary small">create</button>
+        </div>
       </div>
-    </section>
+    </div>
+  </main>
+
+  <!-- ═══════════════════ VIEW 3: carousel detail ═══════════════════ -->
+  <main id="viewCarousel" class="view" hidden>
+    <div class="grid">
+      <section class="col left">
+        <div class="card">
+          <label class="lbl">carousel title</label>
+          <input id="carouselTitle" />
+          <label class="lbl mt">description</label>
+          <input id="carouselDesc" />
+          <label class="lbl mt">palette note</label>
+          <input id="carouselPalette" placeholder="e.g. dark bg, white text, blue accent" />
+          <div class="row gap end">
+            <button id="deleteCarouselBtn" class="ghost small danger">delete carousel</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="row between">
+            <label class="lbl">master prompt</label>
+            <span id="overrideBadge" class="hint">using project default</span>
+          </div>
+          <textarea id="masterPromptOverride" rows="10" placeholder="leave blank to inherit the project master prompt"></textarea>
+          <div class="row gap">
+            <button id="clearOverrideBtn" class="ghost small">clear override</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <label class="lbl">references (from project)</label>
+          <div class="hint" id="carouselRefsHint">—</div>
+          <div id="carouselRefsGrid" class="refgrid faded"></div>
+        </div>
+
+        <div class="card">
+          <label class="lbl">run controls</label>
+          <div class="row gap">
+            <button id="previewBtn" class="primary">preview slide 1</button>
+            <button id="generateAllBtn" class="secondary">generate 2-N</button>
+            <button id="regenAllBtn" class="ghost">regen all</button>
+          </div>
+          <div id="runStatus" class="status">idle</div>
+        </div>
+      </section>
+
+      <section class="col right">
+        <div class="card">
+          <div class="row between">
+            <label class="lbl">slides</label>
+            <button id="addSlideBtn" class="ghost small">+ add slide</button>
+          </div>
+          <div id="slidesList" class="slides"></div>
+        </div>
+      </section>
+    </div>
   </main>
 
   <template id="slideRowTpl">
@@ -85,6 +199,45 @@
         </div>
       </div>
       <div class="slide-status">idle</div>
+    </div>
+  </template>
+
+  <template id="projectRowTpl">
+    <div class="item" data-slug="">
+      <div class="item-main">
+        <div class="item-title"></div>
+        <div class="item-desc"></div>
+        <div class="item-meta"></div>
+      </div>
+      <div class="item-actions">
+        <button class="open primary small">open</button>
+      </div>
+    </div>
+  </template>
+
+  <template id="presetRowTpl">
+    <div class="item" data-slug="">
+      <div class="item-main">
+        <div class="item-title"></div>
+        <div class="item-desc"></div>
+        <div class="item-meta"></div>
+      </div>
+      <div class="item-actions">
+        <button class="install secondary small">install</button>
+      </div>
+    </div>
+  </template>
+
+  <template id="carouselRowTpl">
+    <div class="item" data-slug="">
+      <div class="item-main">
+        <div class="item-title"></div>
+        <div class="item-desc"></div>
+        <div class="item-meta"></div>
+      </div>
+      <div class="item-actions">
+        <button class="open primary small">open</button>
+      </div>
     </div>
   </template>
 
